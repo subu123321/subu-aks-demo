@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-aks
+  namespace: demo
+  labels:
+    app: hello-aks
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: hello-aks
+  template:
+    metadata:
+      labels:
+        app: hello-aks
+    spec:
+      # Created by the pipeline only if AKS cannot pull from ACR via AcrPull (see "Ensure AKS can pull from ACR").
+      # If the secret does not exist, Kubernetes ignores it and pulls using the cluster's own identity.
+      imagePullSecrets:
+      - name: acr-pull-secret
+      containers:
+      - name: hello-aks
+        image: __IMAGE__            # replaced by the pipeline with <acr>.azurecr.io/hello-aks:<tag>
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: APP_VERSION
+          value: "__TAG__"          # replaced by the pipeline with the build id
+        readinessProbe:
+          httpGet:
+            path: /health.jsp
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health.jsp
+            port: 8080
+          initialDelaySeconds: 45
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: 100m
+            memory: 384Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi

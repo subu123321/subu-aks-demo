@@ -1,0 +1,5 @@
+target/
+.git/
+k8s/
+azure-pipelines.yml
+README.md
